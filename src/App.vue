@@ -3,6 +3,10 @@ import Chart from 'primevue/chart';
 import { ref, onMounted } from "vue";
 
 const countryName = ref("");
+const getCountryName = ref(false);
+const totalCases = ref("");
+const totalDeaths = ref("");
+const totalRecovered = ref("");
 
 const getCovidData = async () => {
   const url = `https://covid-19-tracking.p.rapidapi.com/v1/Mauritius`;
@@ -16,17 +20,26 @@ const getCovidData = async () => {
 
   try {
     const response = await fetch(url, options);
-    const result = await response.text();
+    const result = await response.json();
     countryName.value = result.Country_text;
+    getCountryName.value = true;
 
-    console.log(result);
+    for (const [key, value] of Object.entries(result)) {
+      if (key === "Total Cases_text") {
+        totalCases.value = value;
+      } else if (key === "Total Deaths_text") {
+        totalDeaths.value = value;
+      } else if (key === "Total Recovered_text") {
+        totalRecovered.value = value;
+      }
+    }
   } catch (error) {
     console.error(error);
   }
 }
 
 onMounted(async () => {
-    await getCovidData()
+    await getCovidData();
     chartData.value = setChartData();
     chartOptions.value = setChartOptions();
 });
@@ -38,10 +51,10 @@ const setChartData = () => {
     const documentStyle = getComputedStyle(document.body);
 
     return {
-        labels: ['A', 'B', 'C'],
+        labels: ['Total Cases', 'Total Deaths', 'Total Recovered'],
         datasets: [
             {
-                data: [540, 325, 702],
+                data: [totalCases.value, totalDeaths.value, totalRecovered.value],
                 backgroundColor: [documentStyle.getPropertyValue('--cyan-500'), documentStyle.getPropertyValue('--orange-500'), documentStyle.getPropertyValue('--gray-500')],
                 hoverBackgroundColor: [documentStyle.getPropertyValue('--cyan-400'), documentStyle.getPropertyValue('--orange-400'), documentStyle.getPropertyValue('--gray-400')]
             }
@@ -68,7 +81,7 @@ const setChartOptions = () => {
 
 <template>
   <div class="chart-container">
-      <div class="country">Covid Cases in {{ countryName }}</div>
+      <div v-if="getCountryName" class="country">Covid Cases in {{ countryName }}</div>
       <Chart type="doughnut" :data="chartData" :options="chartOptions" class="chart-content" />
   </div>
 </template>
